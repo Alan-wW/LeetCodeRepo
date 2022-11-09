@@ -1,5 +1,3 @@
-# LeetCodeRepo
-LeetCode
 ---
 title: Alan_得算法模板
 date: 2021-06-21 10:44:14
@@ -733,6 +731,179 @@ class Solution {
             // 用点 t 的「最小距离」更新其他点
             for (int i = 1; i <= n; i++) {
                 dist[i] = Math.min(dist[i], dist[t] + w[t][i]);
+            }
+        }
+    }
+}
+```
+
+## Bellman Ford(邻接表)
+
+* 解决有边数限制的最短路问题
+* 适用存在负权边的图
+* 单源最短路
+* 时间复杂度(O(m*n))
+* 空间复杂度(O(n))
+
+```java
+class Solution {
+    int N = 110, M = 6010;
+    // 邻接表
+    int[] he = new int[N], e = new int[M], ne = new int[M], w = new int[M];
+    // dist[x] = y 代表从「源点/起点」到 x 的最短距离为 y
+    int[] dist = new int[N];
+    int INF = 0x3f3f3f3f;
+    int n, m, k, idx;
+    void add(int a, int b, int c) {
+        e[idx] = b;
+        ne[idx] = he[a];
+        he[a] = idx;
+        w[idx] = c;
+        idx++;
+    }
+    public int networkDelayTime(int[][] ts, int _n, int _k) {
+        n = _n; k = _k;
+        m = ts.length;
+        // 初始化链表头
+        Arrays.fill(he, -1);
+        // 存图
+        for (int[] t : ts) {
+            int u = t[0], v = t[1], c = t[2];
+            add(u, v, c);
+        }
+        // 最短路
+        bf();
+        // 遍历答案
+        int ans = 0;
+        for (int i = 1; i <= n; i++) {
+            ans = Math.max(ans, dist[i]);
+        }
+        return ans > INF / 2 ? -1 : ans;
+    }
+    void bf() {
+        // 起始先将所有的点标记为「距离为正无穷」
+        Arrays.fill(dist, INF);
+        // 只有起点最短距离为 0
+        dist[k] = 0;
+        // 迭代 n 次
+        for (int p = 1; p <= n; p++) {
+            int[] prev = dist.clone();
+            // 每次都使用上一次迭代的结果，执行松弛操作
+            for (int a = 1; a <= n; a++) {
+                for (int i = he[a]; i != -1; i = ne[i]) {
+                    int b = e[i];
+                    dist[b] = Math.min(dist[b], prev[a] + w[i]);
+                }
+            }
+        }
+    }
+}
+```
+
+> 有边数限制
+
+```java
+class Solution {
+    int N = 110, INF = 0x3f3f3f3f;
+    int[][] g = new int[N][N];
+    int[] dist = new int[N];
+    int n, m, s, t, k;
+    public int findCheapestPrice(int _n, int[][] flights, int _src, int _dst, int _k) {
+        n = _n; s = _src; t = _dst; k = _k + 1;
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                g[i][j] = i == j ? 0 : INF;
+            }
+        }
+        for (int[] f : flights) {
+            g[f[0]][f[1]] = f[2];
+        }
+        int ans = bf();
+        return ans > INF / 2 ? -1 : ans;
+    }
+    int bf() {
+        Arrays.fill(dist, INF);
+        dist[s] = 0;
+        for (int limit = 0; limit < k; limit++) {
+            int[] clone = dist.clone();
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    dist[j] = Math.min(dist[j], clone[i] + g[i][j]);
+                }
+            }
+        }
+        return dist[t];
+    }
+}
+```
+
+## SPFA（邻接表）
+
+SPFA 是对 Bellman Ford 的优化实现，可以使用队列进行优化，也可以使用栈进行优化。
+
+通常情况下复杂度为 O(k*m)， 一般为4 到5 ，最坏情况下仍为 O(m*n)，当数据为网格图时，复杂度会从O(km) 退化为O(mn) 。
+
+```java
+class Solution {
+    int N = 110, M = 6010;
+    // 邻接表
+    int[] he = new int[N], e = new int[M], ne = new int[M], w = new int[M];
+    // dist[x] = y 代表从「源点/起点」到 x 的最短距离为 y
+    int[] dist = new int[N];
+    // 记录哪一个点「已在队列」中
+    boolean[] vis = new boolean[N];
+    int INF = 0x3f3f3f3f;
+    int n, k, idx;
+    void add(int a, int b, int c) {
+        e[idx] = b;
+        ne[idx] = he[a];
+        he[a] = idx;
+        w[idx] = c;
+        idx++;
+    }
+    public int networkDelayTime(int[][] ts, int _n, int _k) {
+        n = _n; k = _k;
+        // 初始化链表头
+        Arrays.fill(he, -1);
+        // 存图
+        for (int[] t : ts) {
+            int u = t[0], v = t[1], c = t[2];
+            add(u, v, c);
+        }
+        // 最短路
+        spfa();
+        // 遍历答案
+        int ans = 0;
+        for (int i = 1; i <= n; i++) {
+            ans = Math.max(ans, dist[i]);
+        }
+        return ans > INF / 2 ? -1 : ans;
+    }
+    void spfa() {
+        // 起始先将所有的点标记为「未入队」和「距离为正无穷」
+        Arrays.fill(vis, false);
+        Arrays.fill(dist, INF);
+        // 只有起点最短距离为 0
+        dist[k] = 0;
+        // 使用「双端队列」存储，存储的是点编号
+        Deque<Integer> d = new ArrayDeque<>();
+        // 将「源点/起点」进行入队，并标记「已入队」
+        d.addLast(k);
+        vis[k] = true;
+        while (!d.isEmpty()) {
+            // 每次从「双端队列」中取出，并标记「未入队」
+            int poll = d.pollFirst();
+            vis[poll] = false;
+            // 尝试使用该点，更新其他点的最短距离
+            // 如果更新的点，本身「未入队」则加入队列中，并标记「已入队」
+            for (int i = he[poll]; i != -1; i = ne[i]) {
+                int j = e[i];
+                if (dist[j] > dist[poll] + w[i]) {
+                    dist[j] = dist[poll] + w[i];
+                    if (vis[j]) continue;
+                    d.addLast(j);
+                    vis[j] = true;
+                }
             }
         }
     }
